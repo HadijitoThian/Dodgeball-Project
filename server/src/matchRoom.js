@@ -111,6 +111,15 @@ export class MatchRoom {
     try { msg = JSON.parse(evt.data) } catch { return }
     if (msg.t === 'ping') { try { ws.send(JSON.stringify({ t: 'pong', at: msg.at })) } catch {}; return }
 
+    // Emote — broadcast to all clients so they render the bubble.
+    if (msg.t === 'emote' && typeof msg.id === 'string' && msg.id.length < 32) {
+      const now = Date.now()
+      if (now - (meta.lastEmoteAt || 0) < 800) return
+      meta.lastEmoteAt = now
+      this._broadcast({ t: 'emote', from: meta.slotIndex, id: msg.id, at: now })
+      return
+    }
+
     // Lobby / match chat — broadcast to everyone in the room.
     if (msg.t === 'chat' && typeof msg.text === 'string') {
       const now = Date.now()

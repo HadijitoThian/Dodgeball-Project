@@ -9,6 +9,8 @@ import CharacterPose, { poseVerb } from './CharacterPose.jsx'
 import { STAT_STARS } from '../game/constants.js'
 import { drawHumanFigure } from '../game/render.js'
 import FriendPicker from './FriendPicker.jsx'
+import EmoteWheel from './EmoteWheel.jsx'
+import { EMOTES, EMOTE_HOLD_MS } from '../game/emotes.js'
 
 const btn = 'px-6 py-3 rounded-xl bg-gradient-to-b from-cyan-500 to-cyan-700 hover:from-cyan-400 hover:to-cyan-600 text-white font-bold shadow-lg border border-cyan-300/40 disabled:opacity-40 disabled:cursor-not-allowed'
 const btnAlt = 'px-4 py-2 rounded bg-slate-700 hover:bg-slate-600 text-white font-semibold border border-slate-500'
@@ -19,6 +21,8 @@ export default function OnlineMatch({ profile, onExit, autoJoinCode, onMatchOver
   const [joinCode, setJoinCode] = useState(autoJoinCode || '')
   const [code, setCode] = useState('')
   const [chatMessages, setChatMessages] = useState([]) // {name, text, at, from}
+  const [emoteWheel, setEmoteWheel] = useState(false)
+  const [emoteBySlot, setEmoteBySlot] = useState({}) // { [slotIndex]: {id, until} }
   const [error, setError] = useState('')
   const [rtt, setRtt] = useState(0)
   const [me, setMe] = useState(null)          // { playerId, side, sideSlot, isHost, type }
@@ -56,6 +60,11 @@ export default function OnlineMatch({ profile, onExit, autoJoinCode, onMatchOver
     t.on('roster',      (m) => setRoster(m.players))
     t.on('lobby',       (m) => setLobby(m))
     t.on('chat',        (m) => setChatMessages(list => [...list.slice(-50), m]))
+    t.on('emote',       (m) => {
+      const until = Date.now() + EMOTE_HOLD_MS
+      setEmoteBySlot(prev => ({ ...prev, [m.from]: { id: m.id, until } }))
+      setTimeout(() => setEmoteBySlot(prev => (prev[m.from]?.until === until ? { ...prev, [m.from]: null } : prev)), EMOTE_HOLD_MS + 20)
+    })
     t.on('matchStart',  () => { setMatchEnd(null); setScreen('match') })
     t.on('state',       (m) => setSnap(m.snap))
     t.on('matchEnd',    (m) => {
@@ -102,7 +111,10 @@ export default function OnlineMatch({ profile, onExit, autoJoinCode, onMatchOver
 
   // Keyboard capture + mobile detection
   useEffect(() => {
-    const d = e => { keysRef.current[e.code] = true }
+    const d = e => {
+      keysRef.current[e.code] = true
+      if (e.code === 'KeyT') { setEmoteWheel(o => !o); sfx.click() }
+    }
     const u = e => { keysRef.current[e.code] = false }
     window.addEventListener('keydown', d); window.addEventListener('keyup', u)
     const mobileCheck = () => setIsMobile(detectMobile())
@@ -231,11 +243,43 @@ export default function OnlineMatch({ profile, onExit, autoJoinCode, onMatchOver
           style={{ width: ARENA_W * scale, height: ARENA_H * scale, background: '#000' }}
           className="rounded-xl border border-slate-700"
         />
+        {/* Emote bubbles rendered above each player */}
+        {snap && Object.entries(emoteBySlot).map(([slot, data]) => {
+          if (!data || data.until < Date.now()) return null
+          const emote = EMOTES.find(e => e.id === data.id)
+          if (!emote) return null
+          // Find the player with matching slotIndex — snapshot players carry
+          // playerId, side, sideSlot; slot index in lobby order maps 1:1 to
+          // playersMeta so we can approximate by side+sideSlot from `roster`.
+          const rosterEntry = roster.find(r => r.slotIndex === Number(slot))
+          if (!rosterEntry) return null
+          const p = snap.players.find(pp => pp.side === rosterEntry.side && pp.sideSlot === rosterEntry.sideSlot)
+          if (!p) return null
+          const x = (p.x + 28) * scale
+          const y = (p.y - 20) * scale
+          return (
+            <div key={slot} className="absolute pointer-events-none" style={{ left: x, top: y, transform: 'translate(-50%, -100%)' }}>
+              <div className="px-3 py-2 rounded-2xl bg-slate-950/90 border border-amber-400/70 shadow-2xl flex items-center gap-2 whitespace-nowrap">
+                <span className="text-2xl leading-none">{emote.emoji}</span>
+                <span className="text-xs font-bold text-amber-200">{emote.label}</span>
+              </div>
+            </div>
+          )
+        })}
       </div>
       <p className="text-slate-400 text-sm mt-2">
-        <span className="font-mono text-cyan-300">A/D</span> move · <span className="font-mono text-cyan-300">W</span> jump · <span className="font-mono text-cyan-300">S</span> duck · <span className="font-mono text-cyan-300">F</span> throw (hold) · <span className="font-mono text-cyan-300">G</span> catch
+        <span className="font-mono text-cyan-300">A/D</span> move · <span className="font-mono text-cyan-300">W</span> jump · <span className="font-mono text-cyan-300">S</span> duck · <span className="font-mono text-cyan-300">F</span> throw (hold) · <span className="font-mono text-cyan-300">G</span> catch · <span className="font-mono text-amber-300">T</span> emote
       </p>
       {isMobile && <TouchControls touchRef={touchRef} />}
+      <button onClick={() => { sfx.click(); setEmoteWheel(true) }} className="fixed bottom-4 right-4 px-3 py-2 rounded bg-amber-700 border border-amber-400 text-white text-sm z-30">😂 Emote</button>
+      <EmoteWheel
+        open={emoteWheel}
+        onClose={() => setEmoteWheel(false)}
+        onPick={(emote) => {
+          setEmoteWheel(false)
+          transportRef.current?.sendEmote(emote.id)
+        }}
+      />
     </div>
   )
 }

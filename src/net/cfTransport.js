@@ -96,6 +96,7 @@ export class CloudflareTransport extends TransportBase {
   unready()               { this._send({ t: 'unready' }) }
   rematch()               { this._send({ t: 'rematch' }) }
   sendChat(text)          { this._send({ t: 'chat', text }) }
+  sendEmote(id)           { this._send({ t: 'emote', id }) }
 
   disconnect() {
     this._closedByUser = true
