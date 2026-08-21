@@ -6,7 +6,7 @@ import {
 } from '../lib/friends.js'
 import { sfx } from '../game/sfx.js'
 
-export default function FriendsScreen({ session, onBack }) {
+export default function FriendsScreen({ session, onBack, onSpectate }) {
   const uid = session?.user?.id
   const [tab, setTab] = useState('friends') // friends | requests | add
   const [data, setData] = useState({ friends: [], incoming: [], outgoing: [] })
@@ -59,6 +59,7 @@ export default function FriendsScreen({ session, onBack }) {
                 if (!confirm(`Remove ${row.other.display_name} from friends?`)) return
                 setBusy(row.rowId); await unfriend(row.rowId); setBusy(null); refresh()
               }}
+              onSpectate={onSpectate}
             />
           )}
 
@@ -108,6 +109,7 @@ function Presence({ lastSeen }) {
 }
 
 function FriendCard({ other, right }) {
+  const inRoom = !!other.current_room_code
   return (
     <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-900/70 border border-slate-700">
       <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-800 border border-slate-600 flex items-center justify-center">
@@ -118,7 +120,12 @@ function FriendCard({ other, right }) {
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-bold truncate">{other.display_name || 'Player'}</div>
+        <div className="font-bold truncate flex items-center gap-2">
+          {other.display_name || 'Player'}
+          {inRoom && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-600/30 border border-red-400/60 text-red-200 tracking-widest">LIVE</span>
+          )}
+        </div>
         <Presence lastSeen={other.last_seen_at} />
       </div>
       {right}
@@ -126,18 +133,32 @@ function FriendCard({ other, right }) {
   )
 }
 
-function FriendsList({ friends, busy, onRemove }) {
+function FriendsList({ friends, busy, onRemove, onSpectate }) {
   if (!friends.length) return <div className="text-slate-300 text-center py-6">No friends yet. Send a request from the Add Friend tab.</div>
   return (
     <div className="space-y-2">
-      {friends.map(row => (
-        <FriendCard key={row.rowId} other={row.other}
-          right={
-            <button onClick={() => onRemove(row)}
-              disabled={busy === row.rowId}
-              className="chip-btn text-xs text-red-300 hover:text-red-200">Remove</button>
-          } />
-      ))}
+      {friends.map(row => {
+        const inRoom = !!row.other?.current_room_code
+        return (
+          <FriendCard key={row.rowId} other={row.other}
+            right={
+              <div className="flex gap-2">
+                {inRoom && onSpectate && (
+                  <button
+                    onClick={() => { sfx.click?.(); onSpectate(row.other.current_room_code) }}
+                    className="arcade-btn text-xs py-1 px-3"
+                    title="Watch this match live"
+                  >
+                    👀 Spectate
+                  </button>
+                )}
+                <button onClick={() => onRemove(row)}
+                  disabled={busy === row.rowId}
+                  className="chip-btn text-xs text-red-300 hover:text-red-200">Remove</button>
+              </div>
+            } />
+        )
+      })}
     </div>
   )
 }

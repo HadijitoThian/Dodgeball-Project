@@ -11,6 +11,7 @@ import { drawHumanFigure } from '../game/render.js'
 import FriendPicker from './FriendPicker.jsx'
 import EmoteWheel from './EmoteWheel.jsx'
 import { EMOTES, EMOTE_HOLD_MS } from '../game/emotes.js'
+import { supabase } from '../lib/supabase.js'
 
 const btn = 'px-6 py-3 rounded-xl bg-gradient-to-b from-cyan-500 to-cyan-700 hover:from-cyan-400 hover:to-cyan-600 text-white font-bold shadow-lg border border-cyan-300/40 disabled:opacity-40 disabled:cursor-not-allowed'
 const btnAlt = 'px-4 py-2 rounded bg-slate-700 hover:bg-slate-600 text-white font-semibold border border-slate-500'
@@ -55,7 +56,16 @@ export default function OnlineMatch({ profile, onExit, autoJoinCode, onMatchOver
     setError('')
     const t = new CloudflareTransport({ name, userId: profile?.id, country: profile?.country, avatarUrl: profile?.avatar_url })
     transportRef.current = t
-    t.on('connected',   () => setScreen('lobby'))
+    t.on('connected',   () => {
+      setScreen('lobby')
+      // Publish "I'm in room X" so friends can Spectate.
+      if (session?.user?.id) {
+        supabase.from('profiles').update({
+          current_room_code: roomCode.toUpperCase(),
+          current_room_since: new Date().toISOString(),
+        }).eq('id', session.user.id).then(() => {}, () => {})
+      }
+    })
     t.on('welcome',     (m) => { setMe(m); sfx.click() })
     t.on('roster',      (m) => setRoster(m.players))
     t.on('lobby',       (m) => setLobby(m))
@@ -100,6 +110,11 @@ export default function OnlineMatch({ profile, onExit, autoJoinCode, onMatchOver
   const leave = () => {
     if (transportRef.current) transportRef.current.disconnect()
     transportRef.current = null
+    if (session?.user?.id) {
+      supabase.from('profiles').update({
+        current_room_code: null, current_room_since: null,
+      }).eq('id', session.user.id).then(() => {}, () => {})
+    }
     setScreen('menu'); setRoster([]); setSnap(null); setMe(null); setLobby(null); setCode(''); setMatchEnd(null)
   }
   const copyInvite = async () => {
@@ -524,7 +539,7 @@ function TeamPanel({ title, side, slots, mySide, mySideSlot }) {
 }
 
 // -------- draw --------
-function drawGame(ctx, snap, me) {
+export function drawGame(ctx, snap, me) {
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, ARENA_W, ARENA_H)
   if (!snap) {
     ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 36px system-ui'

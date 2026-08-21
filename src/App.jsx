@@ -10,6 +10,7 @@ import LevelUpScreen from './components/LevelUpScreen.jsx'
 import DailyChallengesScreen from './components/DailyChallengesScreen.jsx'
 import StreakReward from './components/StreakReward.jsx'
 import FriendsScreen from './components/FriendsScreen.jsx'
+import SpectateMatch from './components/SpectateMatch.jsx'
 import InviteToast from './components/InviteToast.jsx'
 import { acceptInvite as libAcceptInvite } from './lib/party.js'
 import TutorialCanvas, { isTutorialDone } from './components/TutorialCanvas.jsx'
@@ -51,6 +52,7 @@ export default function App() {
   const [showAccountMenu, setShowAccountMenu] = useState(false)
   const [levelUpResult, setLevelUpResult] = useState(null) // { result, characterId }
   const [rankedRoom, setRankedRoom] = useState(null) // roomCode when a ranked match starts
+  const [spectateCode, setSpectateCode] = useState(null)
   const [pendingJoin, setPendingJoin] = useState(() => {
     try {
       const params = new URLSearchParams(window.location.search)
@@ -469,6 +471,14 @@ export default function App() {
         <FriendsScreen
           session={auth.session}
           onBack={() => { auth.refreshFriends?.(); backToTitle() }}
+          onSpectate={(code) => { setSpectateCode(code); setScreen('spectate') }}
+        />
+      )}
+      {screen === 'spectate' && spectateCode && (
+        <SpectateMatch
+          joinCode={spectateCode}
+          name={auth.profile?.display_name || 'Spectator'}
+          onExit={() => { setSpectateCode(null); setScreen('friends') }}
         />
       )}
       {screen === 'ranked' && (

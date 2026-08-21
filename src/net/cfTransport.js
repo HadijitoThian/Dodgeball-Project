@@ -44,12 +44,13 @@ export class CloudflareTransport extends TransportBase {
     return code
   }
 
-  async join(code) {
+  async join(code, opts = {}) {
     this.code = code.toUpperCase()
     const params = new URLSearchParams({ name: this.name })
     if (this.userId)   params.set('uid', this.userId)
     if (this.country)  params.set('country', this.country)
     if (this.avatarUrl) params.set('avatar', this.avatarUrl)
+    if (opts.spectate) params.set('spectate', '1')
     const url = `${wsBase()}/ws/${encodeURIComponent(this.code)}?${params}`
     this.ws = new WebSocket(url)
 

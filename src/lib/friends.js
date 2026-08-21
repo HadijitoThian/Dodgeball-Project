@@ -31,7 +31,7 @@ export async function searchUsers(query, selfId) {
   if (q.length < 2) return []
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, display_name, avatar_url, last_seen_at, country')
+    .select('id, display_name, avatar_url, last_seen_at, country, current_room_code')
     .ilike('display_name', `%${q}%`)
     .neq('id', selfId)
     .limit(20)
@@ -104,7 +104,7 @@ export async function loadFriendsAndRequests(userId) {
   const otherIds = Array.from(new Set(rows.map(r => r.requester_id === userId ? r.addressee_id : r.requester_id)))
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, display_name, avatar_url, last_seen_at, country')
+    .select('id, display_name, avatar_url, last_seen_at, country, current_room_code')
     .in('id', otherIds)
   const byId = new Map((profiles || []).map(p => [p.id, p]))
 

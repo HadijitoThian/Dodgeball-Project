@@ -58,10 +58,40 @@ export class MatchRoom {
     const userId = url.searchParams.get('uid') || null
     const country = (url.searchParams.get('country') || 'ZZ').slice(0, 2).toUpperCase()
     const avatarUrl = url.searchParams.get('avatar') || null
+    const spectate = url.searchParams.get('spectate') === '1'
 
     const pair = new WebSocketPair()
     const [clientWs, serverWs] = Object.values(pair)
     serverWs.accept()
+
+    // Spectator path — no slot, just receive state broadcasts.
+    if (spectate) {
+      const meta = { playerId: 'spec-' + crypto.randomUUID().slice(0, 6), slotIndex: -1, isHost: false, name, userId, country, avatarUrl, spectator: true }
+      this.sessions.set(serverWs, meta)
+      serverWs.send(JSON.stringify({
+        t: 'welcome', playerId: meta.playerId, isHost: false, name,
+        side: null, sideSlot: null, type: this.type, spectator: true,
+      }))
+      // Push current lobby / roster so the spectator's UI has state.
+      try { serverWs.send(JSON.stringify({ t: 'roster', players: this._roster() })) } catch {}
+      try {
+        serverWs.send(JSON.stringify({
+          t: 'lobby',
+          state: this.state_, type: this.type,
+          mapId: this.mapId,
+          slots: this.slots.map(s => ({
+            slotIndex: s.slotIndex, side: s.side, sideSlot: s.sideSlot,
+            character: s.character, ready: s.ready, name: s.name,
+            filled: !!s.playerId, avatarUrl: s.avatarUrl,
+          })),
+        }))
+      } catch {}
+      serverWs.addEventListener('message', (evt) => this._handleMessage(serverWs, meta, evt))
+      const cleanup = () => this._cleanupSpectator(serverWs)
+      serverWs.addEventListener('close', cleanup)
+      serverWs.addEventListener('error', cleanup)
+      return new Response(null, { status: 101, webSocket: clientWs })
+    }
 
     const slot = this.slots.find(s => !s.playerId)
     if (!slot) {
@@ -95,6 +125,12 @@ export class MatchRoom {
     return new Response(null, { status: 101, webSocket: clientWs })
   }
 
+  _cleanupSpectator(ws) {
+    if (!this.sessions.has(ws)) return
+    this.sessions.delete(ws)
+    if (this.sessions.size === 0) this._stopTick()
+  }
+
   _cleanup(ws, meta) {
     if (!this.sessions.has(ws)) return
     this.sessions.delete(ws)
@@ -110,6 +146,9 @@ export class MatchRoom {
     let msg = null
     try { msg = JSON.parse(evt.data) } catch { return }
     if (msg.t === 'ping') { try { ws.send(JSON.stringify({ t: 'pong', at: msg.at })) } catch {}; return }
+
+    // Spectators can only ping — no chat / emote / gameplay input.
+    if (meta.spectator) return
 
     // Emote — broadcast to all clients so they render the bubble.
     if (msg.t === 'emote' && typeof msg.id === 'string' && msg.id.length < 32) {
