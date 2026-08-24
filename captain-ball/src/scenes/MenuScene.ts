@@ -59,7 +59,7 @@ export class MenuScene extends Phaser.Scene {
       .setOrigin(0.5)
 
     this.add
-      .text(width / 2, height - 26, 'Step 1 · court, teams and ball only — no movement yet', {
+      .text(width / 2, height - 26, 'Step 2 · you can run around — no passing yet', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '12px',
         color: '#4c5b78',

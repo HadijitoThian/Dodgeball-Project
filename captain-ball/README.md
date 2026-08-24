@@ -2,8 +2,9 @@
 
 A 2.5D isometric captain ball game for the browser. Phaser 3 + TypeScript + Vite.
 
-> **Status: Step 1 of 6 — skeleton.** The court, both teams and the ball are on
-> screen and correctly depth-sorted. Nothing moves yet. Movement lands in Step 2.
+> **Status: Step 2 of 6 — movement.** You can run a player around the court with
+> the keyboard or a touch joystick, and switch to the player nearest the ball.
+> Passing lands in Step 3.
 
 ---
 
@@ -28,18 +29,31 @@ Then open **http://localhost:5173** in your browser.
 
 1. A dark title screen reading **CAPTAIN BALL** with a big blue **PLAY** button.
 2. Click or tap PLAY (or press Enter/Space).
-3. An isometric wooden court with:
-   - **14 players** — 7 blue, 7 red — spread out in their starting formation, none
-     of them overlapping,
-   - **two crowned captains** (shirt number 1) standing on grey stools inside
-     coloured restricted circles, at **opposite** ends,
-   - the **ball on the centre spot**,
-   - a **yellow ring** under one blue attacker — that will be the player you
-     control from Step 2,
-   - a score bar across the top reading **BLUE 0 – 0 RED**.
+3. An isometric wooden court with 14 players, two crowned captains on stools
+   inside coloured restricted circles at **opposite** ends, and the ball on the
+   centre spot.
+4. A **yellow ring** under one blue player — that is the one you control.
 
-Every player casts a shadow, and players lower on the screen draw in front of
-players behind them. That is the depth sorting working.
+Now try it:
+
+- **Hold W.** Your player runs towards the top of the screen. Because the court
+  is tilted, that is a diagonal across the floor — which is exactly right.
+- **Hold Shift while running.** You speed up, and the SPRINT meter in the bottom
+  left drains. Let go and it refills.
+- **Run at a captain's circle.** You cannot get in. You slide around the edge
+  instead of stopping dead.
+- **Run at a touchline.** You stop at the line rather than leaving the court.
+- **Press Tab.** Control jumps to the player nearest the ball. Press it again and
+  it moves on to the next nearest.
+- **Watch the depth sorting.** Run behind another player, then in front of them.
+  Whoever is lower on the screen draws in front.
+
+On a phone or tablet, put a thumb **anywhere on the left half** — the joystick
+appears under it. Drag to run, drag further out to sprint. The **SWITCH** button
+is bottom right.
+
+**Only your player moves.** The other thirteen stand still until the AI is
+written in Step 5. That is expected, not a bug.
 
 ### Checking the sport is modelled the right way round
 
@@ -109,27 +123,30 @@ npm run preview
 
 ## Controls
 
-Nothing is wired up yet — this is the plan, delivered in Steps 2 and 3.
-
 **Desktop**
 
-| Key | Action |
-| --- | --- |
-| WASD / arrow keys | Move |
-| Space | Pass |
-| Shift | Sprint |
-| Tab | Switch to the player nearest the ball |
-| Esc | Pause |
+| Key | Action | Working? |
+| --- | --- | --- |
+| WASD / arrow keys | Move | ✅ |
+| Shift | Sprint | ✅ |
+| Tab | Switch to the player nearest the ball | ✅ |
+| Space | Pass | Step 3 |
+| Esc | Pause | Step 6 |
 
 **Touch**
 
-- Left half of the screen: virtual joystick (drag anywhere to move).
-- Right side: a large **PASS** button and a smaller **SWITCH** button.
-- Pause icon top-right.
+| Gesture | Action | Working? |
+| --- | --- | --- |
+| Drag anywhere on the left half | Run. Drag further to sprint. | ✅ |
+| **SWITCH** button, bottom right | Switch player | ✅ |
+| **PASS** button | Pass | Step 3 |
+| Pause icon, top right | Pause | Step 6 |
 
-Aim follows the direction you are moving. Gamepad support is a nice-to-have.
+The joystick **floats**: it appears wherever your thumb lands rather than sitting
+in a fixed corner, so you never have to look down to find it.
 
----
+Aim follows the direction you are running. A gamepad works too if one is plugged
+in — left stick to move, R2 to sprint, Y/Triangle to switch.
 
 ## Where things live
 
@@ -141,6 +158,8 @@ Aim follows the direction you are moving. Gamepad support is a nice-to-have.
 | `src/iso/court.ts` | Draws the floor, lines, circles and the two captain platforms. |
 | `src/entities/` | `Player`, `Captain`, `Ball`. |
 | `src/scenes/` | `BootScene` (assets), `MenuScene`, `MatchScene`, `HUDScene`. |
+| `src/systems/InputController.ts` | Merges keyboard, touch and gamepad into one answer: which way, how fast, and did you ask to switch. |
+| `src/ui/TouchControls.ts` | The floating joystick and the SWITCH button. |
 | `src/util/Storage.ts` | The whole persistence layer: a safe wrapper around `localStorage`. |
 | `CLAUDE.md` | The full brief and the log of decisions made. Read it first. |
 
@@ -153,10 +172,19 @@ line to `ASSET_MANIFEST`. No other code changes.
 
 ---
 
-## Known limitations at Step 1
+## Known limitations at Step 2
 
-- Nothing moves. No input, no passing, no rules enforcement, no AI, no clock.
-- The score bar is static, and there is no match clock yet — it arrives in Step 4.
+- **Only your player moves.** No AI yet — that is Step 5.
+- No passing, no catching, no scoring, no fouls, no match clock. Steps 3 and 4.
+- Players run through each other. Collisions between players arrive with the
+  no-contact foul in Step 4.
+- Pause is not wired up yet (Step 6).
 - Placeholder art only: players are coloured diamonds, the ball is a circle.
 - The production bundle is ~338 KB gzipped, almost all of it Phaser itself. If
   that becomes a problem on mobile data, a custom Phaser build can trim it.
+
+### Debugging tip
+
+Open the browser console and type `game`. That is the live Phaser game.
+`game.scene.getScene('Match')` gives you the running match, and from there
+`.players` and `.ball` are the actual objects on screen.

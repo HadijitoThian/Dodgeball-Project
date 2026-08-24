@@ -255,3 +255,98 @@ export function isInBounds(point: CourtPoint): boolean {
   const { width, length } = RULES.court
   return point.x >= 0 && point.x <= width && point.y >= 0 && point.y <= length
 }
+
+/**
+ * Pull a point back inside the court if it has strayed over a line.
+ *
+ * `inset` keeps a player's centre that far in from the line, so their body does
+ * not hang off the edge of the floor. Returns a new point; the input is not
+ * modified.
+ */
+export function clampToCourt(point: CourtPoint, inset = 0): CourtPoint {
+  const { width, length } = RULES.court
+  return {
+    x: Math.min(Math.max(point.x, inset), width - inset),
+    y: Math.min(Math.max(point.y, inset), length - inset),
+  }
+}
+
+/**
+ * Keep a moving player out of the restricted zone around a captain's platform.
+ *
+ * The RULE is a circle — `isInRestrictedCircle()` is the honest test of it, and
+ * that is what the referee will use in Step 4. This function is about MOVEMENT,
+ * and it blocks slightly more than the circle, for a physical reason:
+ *
+ *   The platform sits 2.5 m in from the end line with a 2 m circle around it.
+ *   That leaves a 0.5 m strip of floor behind the captain — narrower than a
+ *   player's body. There is no legal spot back there to stand in, so pushing
+ *   somebody radially out of the circle would shove them straight through the
+ *   end line and out of the court.
+ *
+ * So the blocked shape is the circle plus that dead strip behind it, and a
+ * player who walks into it is moved to the nearest way OUT: left, right, or
+ * forwards over the front of the circle, whichever is closest. The result is
+ * always inside the court, and a player running at the circle slides around it
+ * rather than sticking.
+ *
+ * `margin` is extra clearance on top of the radius, so a player's body does not
+ * overlap the line.
+ */
+export function pushOutOfRestrictedZones(point: CourtPoint, margin = 0): CourtPoint {
+  let result = point
+  for (const team of ['north', 'south'] as const) {
+    result = escapeRestrictedZone(result, team, RULES.captain.restrictedRadius + margin)
+  }
+  return result
+}
+
+/** Move one point out of one team's restricted zone by the shortest route. */
+function escapeRestrictedZone(
+  point: CourtPoint,
+  team: TeamId,
+  limit: number,
+): CourtPoint {
+  const platform = platformPosition(team)
+  const dx = point.x - platform.x
+  const dy = point.y - platform.y
+
+  // Which way is the middle of the court from this platform? That is the side
+  // players approach from, and the only side with room to stand.
+  const frontSign = platform.y < RULES.court.length / 2 ? 1 : -1
+
+  const insideCircle = Math.hypot(dx, dy) < limit
+  const behindPlatform = frontSign > 0 ? dy <= 0 : dy >= 0
+  const insideDeadStrip = behindPlatform && Math.abs(dx) < limit
+
+  if (!insideCircle && !insideDeadStrip) return point
+
+  // Three ways out, and we take whichever is the shortest move.
+  const leftX = platform.x - limit
+  const rightX = platform.x + limit
+  const frontY = platform.y + frontSign * Math.sqrt(Math.max(0, limit * limit - dx * dx))
+
+  const exits = [
+    { x: leftX, y: point.y, cost: point.x - leftX },
+    { x: rightX, y: point.y, cost: rightX - point.x },
+    { x: point.x, y: frontY, cost: Math.abs(frontY - point.y) },
+  ]
+
+  let best = exits[0]!
+  for (const exit of exits) {
+    if (exit.cost < best.cost) best = exit
+  }
+
+  return { x: best.x, y: best.y }
+}
+
+/**
+ * Everywhere an outfield player is allowed to stand: inside the lines, outside
+ * both restricted circles. This is the one function movement code should call.
+ */
+export function confineOutfieldPlayer(
+  point: CourtPoint,
+  radius = 0,
+): CourtPoint {
+  return pushOutOfRestrictedZones(clampToCourt(point, radius), radius)
+}

@@ -136,7 +136,7 @@ the next step until the founder says the current one works.**
    Vercel. ✅ **done**
 2. **Movement + control** — control one highlighted player with WASD/arrows
    (desktop) and a virtual joystick (touch). Player switching: nearest-to-ball on
-   button press (like FIFA's switch). Depth sorting correct.
+   button press (like FIFA's switch). Depth sorting correct. ✅ **done**
 3. **Passing + catching** — press/tap to pass toward aim direction; ball flies in
    an arc; nearest teammate in the lane catches it. 7-second timer shown in HUD.
    Turnover on expiry.
@@ -209,4 +209,8 @@ Changes to the original brief, and why. Newest last.
 | 2026-08-21 | **Court is 12 m × 20 m**, restricted circle radius 2 m, platform 2.5 m in from the end line, 0.5 m high. The brief did not specify dimensions; these were chosen to give a readable isometric view at the 960×540 design resolution. Change them in `rules.ts` and everything follows. |
 | 2026-08-21 | **No Tailwind.** The HUD and menus are drawn inside the Phaser canvas so they scale with the game on a phone and behave identically inside Capacitor. The only CSS is a few lines inlined in `index.html`. |
 | 2026-08-21 | **Fixed 960×540 design resolution** with `Phaser.Scale.FIT`. Every coordinate and font size is written once and letterboxes onto any screen. |
+| 2026-08-23 | **The touch joystick floats.** Put a thumb anywhere on the left half and the stick appears under it, rather than a fixed pad in the corner. You never have to look down to find it. To switch to a fixed pad, anchor `stickOrigin` in `ui/TouchControls.ts` instead of setting it from the pointer. |
+| 2026-08-23 | **Input is converted from screen direction to court direction**, not the other way round. Pressing W means "up the screen", which on a tilted court is a diagonal in metres. `screenVectorToCourt()` in `projection.ts` does that conversion, so all projection knowledge stays in one file. |
+| 2026-08-23 | **The restricted circle is a wall for movement, but stays a circle for the rules.** `isInRestrictedCircle()` is the honest rule test the referee will use in Step 4. Movement uses `confineOutfieldPlayer()`, which blocks slightly more: the circle *plus* the 0.5 m dead strip behind each platform, which is too narrow for a body to stand in. Without that, pushing a player out of the circle shoved them through the end line. **Revisit at Step 4:** with movement blocked, a human can never commit a circle violation, so that foul will only ever fire on a loose ball or an AI edge case. |
+| 2026-08-23 | **Sprint costs stamina** (`MOVEMENT.sprintStamina`, 3.5 s, refilling over 5 s) with a meter in the HUD. Set `sprintStamina` to 0 for unlimited sprint. |
 | 2026-08-21 | **The default formation is constrained by a test.** Both teams share one formation, mirrored, so it is easy to pick numbers where a defender of one team spawns standing inside an attacker of the other — the first draft did exactly that, and also started a defender inside the restricted circle. `tests/rules.test.ts` now enforces a 1.5 m minimum spawn gap and circle clearance. |

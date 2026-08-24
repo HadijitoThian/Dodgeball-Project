@@ -148,6 +148,34 @@ export function depthFor(point: WorldPoint): number {
   return (point.x + point.y) * 100 + z * 10
 }
 
+/**
+ * Turn a SCREEN direction into a COURT direction.
+ *
+ * This is what makes WASD feel right on a tilted court. Pressing W should move
+ * you towards the top of the screen — but "up the screen" is a diagonal in court
+ * metres, because the court is drawn at an angle. This converts the direction the
+ * player means into the direction the game must actually move them.
+ *
+ * Only the direction matters, so the result is normalised to length 1. A zero
+ * input returns zero.
+ */
+export function screenVectorToCourt(screenX: number, screenY: number): CourtPoint {
+  if (screenX === 0 && screenY === 0) return { x: 0, y: 0 }
+
+  // Same inverse as `screenToIso`, but for a direction rather than a position,
+  // so the origin is not involved.
+  const dx = screenX / scale.halfWidth
+  const dy = screenY / scale.halfHeight
+
+  const courtX = (dx + dy) / 2
+  const courtY = (dy - dx) / 2
+
+  const length = Math.hypot(courtX, courtY)
+  if (length === 0) return { x: 0, y: 0 }
+
+  return { x: courtX / length, y: courtY / length }
+}
+
 /** Straight-line distance between two court points, in metres. */
 export function courtDistance(a: CourtPoint, b: CourtPoint): number {
   return Math.hypot(a.x - b.x, a.y - b.y)

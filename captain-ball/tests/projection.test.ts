@@ -17,6 +17,7 @@ import {
   isoToScreen,
   resetProjection,
   screenToIso,
+  screenVectorToCourt,
   setOrigin,
   setScale,
 } from '../src/iso/projection'
@@ -160,5 +161,69 @@ describe('courtDistance', () => {
 
   it('is zero for the same point', () => {
     expect(courtDistance({ x: 6, y: 10 }, { x: 6, y: 10 })).toBe(0)
+  })
+})
+
+describe('screenVectorToCourt', () => {
+  it('returns zero for no input', () => {
+    expect(screenVectorToCourt(0, 0)).toEqual({ x: 0, y: 0 })
+  })
+
+  it('always returns a direction of length one', () => {
+    const samples: Array<[number, number]> = [
+      [0, -1],
+      [1, 0],
+      [0, 1],
+      [-1, 0],
+      [1, -1],
+      [-3, 7],
+      [0.2, 0.03],
+    ]
+    for (const [sx, sy] of samples) {
+      const direction = screenVectorToCourt(sx, sy)
+      expect(Math.hypot(direction.x, direction.y)).toBeCloseTo(1, 9)
+    }
+  })
+
+  it('sends "up the screen" towards the top corner of the court', () => {
+    // Pressing W means "go up". On a 2:1 isometric court, up the screen is the
+    // diagonal towards court (0, 0), so x and y must decrease together.
+    const up = screenVectorToCourt(0, -1)
+    expect(up.x).toBeLessThan(0)
+    expect(up.y).toBeLessThan(0)
+    expect(up.x).toBeCloseTo(up.y, 9)
+  })
+
+  it('sends "down the screen" the exact opposite way', () => {
+    const up = screenVectorToCourt(0, -1)
+    const down = screenVectorToCourt(0, 1)
+    expect(down.x).toBeCloseTo(-up.x, 9)
+    expect(down.y).toBeCloseTo(-up.y, 9)
+  })
+
+  it('sends "right on screen" along the court\'s increasing-x diagonal', () => {
+    const right = screenVectorToCourt(1, 0)
+    expect(right.x).toBeGreaterThan(0)
+    expect(right.y).toBeLessThan(0)
+    expect(right.x).toBeCloseTo(-right.y, 9)
+  })
+
+  it('agrees with isoToScreen: moving the returned way really does go that way', () => {
+    setOrigin(480, 90)
+    const start = { x: 6, y: 10 }
+    const startScreen = isoToScreen(start)
+
+    // Push "up the screen" and confirm the player actually rises on screen.
+    const up = screenVectorToCourt(0, -1)
+    const movedScreen = isoToScreen({ x: start.x + up.x, y: start.y + up.y })
+    expect(movedScreen.y).toBeLessThan(startScreen.y)
+    expect(movedScreen.x).toBeCloseTo(startScreen.x, 6)
+  })
+
+  it('ignores the length of the input, only the direction', () => {
+    const small = screenVectorToCourt(0.01, -0.01)
+    const large = screenVectorToCourt(100, -100)
+    expect(small.x).toBeCloseTo(large.x, 9)
+    expect(small.y).toBeCloseTo(large.y, 9)
   })
 })

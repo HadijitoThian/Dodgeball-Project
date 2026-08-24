@@ -16,8 +16,8 @@
 
 import Phaser from 'phaser'
 
-import type { CourtPoint, PlayerSpec, Role, TeamId } from '../config/rules'
-import { TEAM_COLOURS } from '../config/balance'
+import { confineOutfieldPlayer, type CourtPoint, type PlayerSpec, type Role, type TeamId } from '../config/rules'
+import { MOVEMENT, TEAM_COLOURS } from '../config/balance'
 import { depthFor, isoToScreen } from '../iso/projection'
 import { TEXTURES } from '../scenes/BootScene'
 
@@ -47,6 +47,15 @@ export class Player {
 
   /** True while this player is the one the human is controlling. */
   isControlled = false
+
+  /**
+   * Sprint fuel, in seconds of sprinting left. Refills when not sprinting.
+   * `MOVEMENT.sprintStamina` of 0 means unlimited.
+   */
+  private stamina: number = MOVEMENT.sprintStamina
+
+  /** How wide a player is on the floor, in metres. Keeps them off the lines. */
+  private static readonly BODY_RADIUS = 0.4
 
   protected currentState: PlayerState = 'idle'
 
@@ -142,6 +151,100 @@ export class Player {
     this.selectionRing.setVisible(controlled)
   }
 
+  /** Fraction of sprint fuel left, 0 to 1. 1 when sprint is unlimited. */
+  get staminaFraction(): number {
+    if (MOVEMENT.sprintStamina <= 0) return 1
+    return Math.max(0, Math.min(1, this.stamina / MOVEMENT.sprintStamina))
+  }
+
+  /**
+   * Move this player for one frame.
+   *
+   * `direction` is a court-space direction of length 1 (or zero to stand still).
+   * `throttle` scales it from 0 to 1, so a joystick can ask for a gentle jog.
+   *
+   * Speed is not applied directly. Instead the player accelerates towards the
+   * speed being asked for, which is what stops movement feeling like a sprite
+   * teleporting around and gives the player some weight.
+   */
+  drive(
+    direction: CourtPoint,
+    throttle: number,
+    wantsSprint: boolean,
+    deltaSeconds: number,
+  ): void {
+    const sprinting = this.updateStamina(wantsSprint, throttle, deltaSeconds)
+    const topSpeed = sprinting ? MOVEMENT.sprintSpeed : MOVEMENT.walkSpeed
+
+    const targetX = direction.x * topSpeed * throttle
+    const targetY = direction.y * topSpeed * throttle
+
+    // Stopping is sharper than starting, so the player feels responsive without
+    // feeling slippery.
+    const asking = throttle > 0
+    const rate = asking ? MOVEMENT.acceleration : MOVEMENT.deceleration
+    const step = rate * deltaSeconds
+
+    this.velocity.x = approach(this.velocity.x, targetX, step)
+    this.velocity.y = approach(this.velocity.y, targetY, step)
+
+    this.applyVelocity(deltaSeconds)
+  }
+
+  /**
+   * Move by the current velocity, then keep the player somewhere they are
+   * allowed to be: inside the lines and out of both restricted circles.
+   */
+  protected applyVelocity(deltaSeconds: number): void {
+    const speed = Math.hypot(this.velocity.x, this.velocity.y)
+
+    if (speed < 0.01) {
+      this.velocity.x = 0
+      this.velocity.y = 0
+      if (this.currentState === 'move') this.setState('idle')
+      return
+    }
+
+    const next = confineOutfieldPlayer(
+      {
+        x: this.position.x + this.velocity.x * deltaSeconds,
+        y: this.position.y + this.velocity.y * deltaSeconds,
+      },
+      Player.BODY_RADIUS,
+    )
+
+    this.position.x = next.x
+    this.position.y = next.y
+
+    // Face the way you are running. Aim will use this from Step 3.
+    this.facing = Math.atan2(this.velocity.y, this.velocity.x)
+
+    if (this.currentState === 'idle') this.setState('move')
+  }
+
+  /**
+   * Spend or refill sprint fuel. Returns whether the player actually sprints
+   * this frame — asking to sprint on an empty tank just gets you a jog.
+   */
+  private updateStamina(
+    wantsSprint: boolean,
+    throttle: number,
+    deltaSeconds: number,
+  ): boolean {
+    if (MOVEMENT.sprintStamina <= 0) return wantsSprint && throttle > 0
+
+    const sprinting = wantsSprint && throttle > 0 && this.stamina > 0
+
+    if (sprinting) {
+      this.stamina = Math.max(0, this.stamina - deltaSeconds)
+    } else {
+      const refillRate = MOVEMENT.sprintStamina / MOVEMENT.sprintRecovery
+      this.stamina = Math.min(MOVEMENT.sprintStamina, this.stamina + refillRate * deltaSeconds)
+    }
+
+    return sprinting
+  }
+
   /**
    * Copy court state onto the sprites. Called every frame for every player.
    * This is also where depth sorting happens: further down the court draws later.
@@ -168,4 +271,14 @@ export class Player {
   destroy(): void {
     this.container.destroy(true)
   }
+}
+
+/**
+ * Step `current` towards `target` by at most `maxStep`.
+ * Used to ease velocity up and down instead of snapping it.
+ */
+function approach(current: number, target: number, maxStep: number): number {
+  const difference = target - current
+  if (Math.abs(difference) <= maxStep) return target
+  return current + Math.sign(difference) * maxStep
 }

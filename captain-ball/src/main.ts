@@ -49,7 +49,15 @@ const config: Phaser.Types.Core.GameConfig = {
     default: 'arcade',
     arcade: { debug: false, gravity: { x: 0, y: 0 } },
   },
+  input: {
+    // Gamepad support is a nice-to-have, and costs nothing to leave switched on.
+    gamepad: true,
+  },
   scene: [BootScene, MenuScene, MatchScene, HUDScene],
 }
 
-new Phaser.Game(config)
+const game = new Phaser.Game(config)
+
+// Handy when something looks wrong: open the browser console and type `game`.
+// From there `game.scene.getScene('Match')` gives you the live match to poke at.
+;(window as unknown as { game: Phaser.Game }).game = game

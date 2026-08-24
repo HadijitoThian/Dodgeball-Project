@@ -12,9 +12,12 @@ import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_FORMATION,
   RULES,
+  clampToCourt,
+  confineOutfieldPlayer,
   isInBounds,
   isInRestrictedCircle,
   platformPosition,
+  pushOutOfRestrictedZones,
   startingPositions,
 } from '../src/config/rules'
 
@@ -206,5 +209,139 @@ describe('match settings', () => {
 
   it('breaks a tie with sudden death', () => {
     expect(RULES.match.tieBreaker).toBe('sudden-death')
+  })
+})
+
+describe('clampToCourt', () => {
+  it('leaves a point that is already inside alone', () => {
+    const inside = { x: 5, y: 9 }
+    expect(clampToCourt(inside)).toEqual(inside)
+  })
+
+  it('pulls a point back over each line it has crossed', () => {
+    const { width, length } = RULES.court
+    expect(clampToCourt({ x: -4, y: 9 })).toEqual({ x: 0, y: 9 })
+    expect(clampToCourt({ x: width + 4, y: 9 })).toEqual({ x: width, y: 9 })
+    expect(clampToCourt({ x: 5, y: -4 })).toEqual({ x: 5, y: 0 })
+    expect(clampToCourt({ x: 5, y: length + 4 })).toEqual({ x: 5, y: length })
+  })
+
+  it('handles a corner, where two lines are crossed at once', () => {
+    expect(clampToCourt({ x: -9, y: -9 })).toEqual({ x: 0, y: 0 })
+  })
+
+  it('keeps a body radius clear of the line', () => {
+    const clamped = clampToCourt({ x: -4, y: 9 }, 0.4)
+    expect(clamped.x).toBeCloseTo(0.4, 9)
+  })
+
+  it('does not modify the point it was given', () => {
+    const original = { x: -4, y: 9 }
+    clampToCourt(original)
+    expect(original).toEqual({ x: -4, y: 9 })
+  })
+})
+
+describe('pushOutOfRestrictedZones', () => {
+  it('leaves a point out in open play alone', () => {
+    const midfield = RULES.court.centre
+    expect(pushOutOfRestrictedZones(midfield)).toEqual(midfield)
+  })
+
+  it('pushes a point that has strayed inside out to the edge of the circle', () => {
+    const platform = platformPosition('north')
+    // Just inside, on the side players approach from.
+    const inside = { x: platform.x, y: platform.y - 0.5 }
+
+    const pushed = pushOutOfRestrictedZones(inside)
+    const distance = Math.hypot(pushed.x - platform.x, pushed.y - platform.y)
+
+    expect(distance).toBeCloseTo(RULES.captain.restrictedRadius, 9)
+    // Straight back the way it came, so a player slides off rather than jumping.
+    expect(pushed.x).toBeCloseTo(inside.x, 9)
+  })
+
+  it('takes the shortest way out, sideways when that is nearer', () => {
+    const platform = platformPosition('south')
+    // Deep behind the platform and off to one side: leaving forwards would be a
+    // long way round, so the nearest exit is out to the side.
+    const inside = { x: platform.x - 1.6, y: 0.6 }
+
+    const pushed = pushOutOfRestrictedZones(inside)
+
+    expect(pushed.y).toBeCloseTo(inside.y, 9)
+    expect(pushed.x).toBeCloseTo(platform.x - RULES.captain.restrictedRadius, 9)
+  })
+
+  it('never leaves a player inside the circle, from anywhere on the court', () => {
+    const { width, length } = RULES.court
+    for (let x = -1; x <= width + 1; x += 0.25) {
+      for (let y = -1; y <= length + 1; y += 0.25) {
+        const pushed = pushOutOfRestrictedZones({ x, y })
+        for (const team of ['north', 'south'] as const) {
+          const platform = platformPosition(team)
+          const distance = Math.hypot(pushed.x - platform.x, pushed.y - platform.y)
+          expect(distance).toBeGreaterThanOrEqual(RULES.captain.restrictedRadius - 1e-9)
+        }
+      }
+    }
+  })
+
+  it('has an answer even for a point exactly on the platform centre', () => {
+    const platform = platformPosition('north')
+    const pushed = pushOutOfRestrictedZones({ ...platform })
+    const distance = Math.hypot(pushed.x - platform.x, pushed.y - platform.y)
+    expect(distance).toBeCloseTo(RULES.captain.restrictedRadius, 9)
+  })
+
+  it('adds the requested margin on top of the radius', () => {
+    const platform = platformPosition('north')
+    const pushed = pushOutOfRestrictedZones({ x: platform.x, y: platform.y - 0.5 }, 0.4)
+    const distance = Math.hypot(pushed.x - platform.x, pushed.y - platform.y)
+    expect(distance).toBeCloseTo(RULES.captain.restrictedRadius + 0.4, 9)
+  })
+
+  it('blocks the dead strip behind the platform, which is too narrow to stand in', () => {
+    const platform = platformPosition('south')
+    // Directly behind the captain, outside the circle but with no room for a body.
+    const behind = { x: platform.x, y: 0.2 }
+    const pushed = pushOutOfRestrictedZones(behind, 0.4)
+
+    expect(pushed).not.toEqual(behind)
+    // And wherever it moved them, they are still on the court.
+    expect(isInBounds(pushed)).toBe(true)
+  })
+})
+
+describe('confineOutfieldPlayer', () => {
+  it('keeps a player somewhere legal no matter where they try to walk', () => {
+    const { width, length } = RULES.court
+    const radius = 0.4
+
+    // Walk a dense grid over and well past the court, including both circles.
+    for (let x = -3; x <= width + 3; x += 0.5) {
+      for (let y = -3; y <= length + 3; y += 0.5) {
+        const safe = confineOutfieldPlayer({ x, y }, radius)
+
+        expect(safe.x).toBeGreaterThanOrEqual(radius - 1e-9)
+        expect(safe.x).toBeLessThanOrEqual(width - radius + 1e-9)
+        expect(safe.y).toBeGreaterThanOrEqual(radius - 1e-9)
+        expect(safe.y).toBeLessThanOrEqual(length - radius + 1e-9)
+
+        for (const team of ['north', 'south'] as const) {
+          const platform = platformPosition(team)
+          const distance = Math.hypot(safe.x - platform.x, safe.y - platform.y)
+          expect(
+            distance,
+            `walking to (${x}, ${y}) ended up ${distance.toFixed(3)} m from the ${team} platform`,
+          ).toBeGreaterThanOrEqual(RULES.captain.restrictedRadius - 1e-9)
+        }
+      }
+    }
+  })
+
+  it('does not move a player who is standing somewhere perfectly legal', () => {
+    const spot = { x: 3, y: 11 }
+    expect(confineOutfieldPlayer(spot, 0.4)).toEqual(spot)
   })
 })

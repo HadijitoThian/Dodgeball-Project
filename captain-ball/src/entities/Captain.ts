@@ -91,4 +91,13 @@ export class Captain extends Player {
   override placeAt(point: CourtPoint): void {
     this.shuffleTo(point)
   }
+
+  /**
+   * Captains cannot be driven around. They are bound to the stool, so ordinary
+   * movement does nothing at all — use `shuffleTo()` to lean for a pass.
+   */
+  override drive(): void {
+    this.velocity.x = 0
+    this.velocity.y = 0
+  }
 }
