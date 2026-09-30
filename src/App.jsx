@@ -11,6 +11,7 @@ import DailyChallengesScreen from './components/DailyChallengesScreen.jsx'
 import StreakReward from './components/StreakReward.jsx'
 import FriendsScreen from './components/FriendsScreen.jsx'
 import SpectateMatch from './components/SpectateMatch.jsx'
+import ShopScreen from './components/ShopScreen.jsx'
 import InviteToast from './components/InviteToast.jsx'
 import { acceptInvite as libAcceptInvite } from './lib/party.js'
 import TutorialCanvas, { isTutorialDone } from './components/TutorialCanvas.jsx'
@@ -214,6 +215,7 @@ export default function App() {
           friendRequests={auth.pendingFriendCount || 0}
           onTutorial={() => setScreen('tutorial')}
           tutorialDone={isTutorialDone()}
+          onShop={auth.session ? () => setScreen('shop') : null}
           dailyUnclaimed={0}
           streak={auth.progression?.progression?.current_streak || 0}
           onQuickPlay={() => {
@@ -479,6 +481,14 @@ export default function App() {
           joinCode={spectateCode}
           name={auth.profile?.display_name || 'Spectator'}
           onExit={() => { setSpectateCode(null); setScreen('friends') }}
+        />
+      )}
+      {screen === 'shop' && (
+        <ShopScreen
+          session={auth.session}
+          progression={auth.progression}
+          onProgressionRefresh={auth.refreshProgression}
+          onBack={backToTitle}
         />
       )}
       {screen === 'ranked' && (

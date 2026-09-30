@@ -4,6 +4,7 @@ import { ensureProgression, loadProgression } from './progression.js'
 import { ensureDailyChallenges, tickLoginStreak } from './daily.js'
 import { startPresenceHeartbeat, stopPresenceHeartbeat, loadFriendsAndRequests } from './friends.js'
 import { loadIncomingInvites, declineInvite as libDeclineInvite } from './party.js'
+import { loadOwnedSkins, clearOwnedSkins } from './skins.js'
 
 export function useAuth() {
   const [session, setSession] = useState(null)
@@ -26,7 +27,7 @@ export function useAuth() {
   }, [])
 
   const loadProgressionState = useCallback(async (uid) => {
-    if (!uid) { setProgression(null); stopPresenceHeartbeat(); setPendingFriendCount(0); return }
+    if (!uid) { setProgression(null); stopPresenceHeartbeat(); setPendingFriendCount(0); clearOwnedSkins(); return }
     await ensureProgression(uid)
     const p = await loadProgression(uid)
     // Fire the daily streak + daily challenge roll on session ready.
@@ -40,6 +41,7 @@ export function useAuth() {
     startPresenceHeartbeat(uid)
     refreshFriendCount(uid)
     refreshInvites(uid)
+    loadOwnedSkins(uid)
   }, [refreshFriendCount, refreshInvites])
 
   // Poll party invites every 20s + on window focus.
