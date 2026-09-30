@@ -39,6 +39,28 @@ export const SHOP_SKINS = [
   { characterId: 'bastion', skinId: 'emerald',  name: 'Emerald',  color: '#065f46', accent: '#a7f3d0', rarity: 'common' },
   { characterId: 'bastion', skinId: 'crimson',  name: 'Crimson',  color: '#7f1d1d', accent: '#fecaca', rarity: 'rare' },
   { characterId: 'bastion', skinId: 'solar',    name: 'Solar',    color: '#f59e0b', accent: '#0f172a', rarity: 'epic' },
+
+  // === LEGENDARY (crate-only) ===
+  { characterId: 'blaze',   skinId: 'phoenix',       name: 'Phoenix',       color: '#dc2626', accent: '#fef3c7', rarity: 'legendary' },
+  { characterId: 'tank',    skinId: 'titan',         name: 'Titan',         color: '#1e293b', accent: '#22d3ee', rarity: 'legendary' },
+  { characterId: 'nova',    skinId: 'oracle',        name: 'Oracle',        color: '#4c1d95', accent: '#fde047', rarity: 'legendary' },
+  { characterId: 'ghost',   skinId: 'wraith',        name: 'Wraith',        color: '#312e81', accent: '#22d3ee', rarity: 'legendary' },
+  { characterId: 'crusher', skinId: 'obsidian',      name: 'Obsidian',      color: '#0f172a', accent: '#f97316', rarity: 'legendary' },
+  { characterId: 'striker', skinId: 'thunderstrike', name: 'Thunderstrike', color: '#facc15', accent: '#7c3aed', rarity: 'legendary' },
+  { characterId: 'volt',    skinId: 'plasma',        name: 'Plasma',        color: '#a855f7', accent: '#67e8f9', rarity: 'legendary' },
+  { characterId: 'ruby',    skinId: 'seraph',        name: 'Seraph',        color: '#fce7f3', accent: '#ec4899', rarity: 'legendary' },
+  { characterId: 'bastion', skinId: 'aegis',         name: 'Aegis',         color: '#0e7490', accent: '#fef3c7', rarity: 'legendary' },
+
+  // === MYTHICAL (crate-only, ultra rare) ===
+  { characterId: 'blaze',   skinId: 'cosmic',    name: 'Cosmic Blaze',    color: '#7c3aed', accent: '#facc15', rarity: 'mythical' },
+  { characterId: 'tank',    skinId: 'colossus',  name: 'Colossus',        color: '#78716c', accent: '#dc2626', rarity: 'mythical' },
+  { characterId: 'nova',    skinId: 'astral',    name: 'Astral Nova',     color: '#020617', accent: '#f0abfc', rarity: 'mythical' },
+  { characterId: 'ghost',   skinId: 'reaper',    name: 'The Reaper',      color: '#000000', accent: '#a855f7', rarity: 'mythical' },
+  { characterId: 'crusher', skinId: 'earth',     name: 'Earthshaker',     color: '#78350f', accent: '#facc15', rarity: 'mythical' },
+  { characterId: 'striker', skinId: 'blitz',     name: 'Blitz Omega',     color: '#0f172a', accent: '#f472b6', rarity: 'mythical' },
+  { characterId: 'volt',    skinId: 'quantum',   name: 'Quantum',         color: '#000000', accent: '#22d3ee', rarity: 'mythical' },
+  { characterId: 'ruby',    skinId: 'divine',    name: 'Divine Ruby',     color: '#f472b6', accent: '#fef9c3', rarity: 'mythical' },
+  { characterId: 'bastion', skinId: 'juggernaut',name: 'Juggernaut',      color: '#1c1917', accent: '#fbbf24', rarity: 'mythical' },
 ]
 
 export const RARITY_PRICE = {
@@ -46,13 +68,19 @@ export const RARITY_PRICE = {
   rare:      800,
   epic:      1600,
   legendary: 3000,
+  mythical:  6000,
 }
 export const RARITY_META = {
   common:    { name: 'Common',    color: '#94a3b8' },
   rare:      { name: 'Rare',      color: '#38bdf8' },
   epic:      { name: 'Epic',      color: '#c084fc' },
   legendary: { name: 'Legendary', color: '#fbbf24' },
+  mythical:  { name: 'Mythical',  color: '#f472b6' },
 }
+
+// Legendary and mythical skins are crate-only — hide them from the
+// direct-buy shop grid.
+export const CRATE_ONLY_RARITIES = new Set(['legendary', 'mythical'])
 
 export function shopSkinsFor(characterId) {
   return SHOP_SKINS.filter(s => s.characterId === characterId)

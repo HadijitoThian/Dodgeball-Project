@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react'
 import { Screen } from './Menus.jsx'
 import CharacterPose from './CharacterPose.jsx'
 import { CHARACTERS } from '../game/constants.js'
-import { SHOP_SKINS, RARITY_PRICE, RARITY_META } from '../game/skinsCatalog.js'
+import { SHOP_SKINS, RARITY_PRICE, RARITY_META, CRATE_ONLY_RARITIES } from '../game/skinsCatalog.js'
 import { buySkin, isOwned, loadOwnedSkins } from '../lib/skins.js'
 import { sfx } from '../game/sfx.js'
+import CratesTab from './CratesTab.jsx'
 
 export default function ShopScreen({ session, progression, onProgressionRefresh, onBack }) {
   const uid = session?.user?.id
@@ -12,6 +13,7 @@ export default function ShopScreen({ session, progression, onProgressionRefresh,
   const [busy, setBusy] = useState(null)
   const [err, setErr] = useState('')
   const [filter, setFilter] = useState('all')
+  const [tab, setTab] = useState('crates')
 
   useEffect(() => {
     if (!uid) return
@@ -31,9 +33,10 @@ export default function ShopScreen({ session, progression, onProgressionRefresh,
     onProgressionRefresh && await onProgressionRefresh()
   }
 
+  const shownAll = SHOP_SKINS.filter(s => !CRATE_ONLY_RARITIES.has(s.rarity))
   const shown = filter === 'all'
-    ? SHOP_SKINS
-    : SHOP_SKINS.filter(s => s.characterId === filter)
+    ? shownAll
+    : shownAll.filter(s => s.characterId === filter)
 
   if (!uid) {
     return <Screen title="COSMETICS SHOP" onBack={onBack}>
@@ -42,16 +45,31 @@ export default function ShopScreen({ session, progression, onProgressionRefresh,
   }
 
   return (
-    <Screen title="COSMETICS SHOP" subtitle="Spend coins on extra character skins. Owned forever." onBack={onBack}>
-      <div className="text-center text-lg mb-4">
+    <Screen title="COSMETICS SHOP" subtitle={tab === 'crates' ? 'Open crates to roll rare and mythical skins.' : 'Buy specific skins directly. Owned forever.'} onBack={onBack}>
+      <div className="text-center text-lg mb-3">
         <span className="text-amber-300 font-black">🪙 {coins.toLocaleString()}</span>
         <span className="text-slate-400 text-sm ml-3">coins</span>
       </div>
 
-      {err && <div className="text-red-400 text-center mb-3">{err}</div>}
+      {/* Tab row */}
+      <div className="flex justify-center gap-2 mb-4">
+        <TabBtn active={tab === 'crates'} onClick={() => { sfx.click?.(); setTab('crates') }}>🎁 Crates</TabBtn>
+        <TabBtn active={tab === 'buy'}    onClick={() => { sfx.click?.(); setTab('buy')    }}>🛒 Direct Buy</TabBtn>
+      </div>
 
-      {/* Filter row */}
-      <div className="flex flex-wrap justify-center gap-2 mb-4">
+      {tab === 'crates' && (
+        <CratesTab session={session} progression={progression} onProgressionRefresh={async () => {
+          onProgressionRefresh && await onProgressionRefresh()
+          if (uid) setOwned(await loadOwnedSkins(uid))
+        }} />
+      )}
+
+      {tab === 'buy' && (
+        <>
+          {err && <div className="text-red-400 text-center mb-3">{err}</div>}
+
+          {/* Filter row */}
+          <div className="flex flex-wrap justify-center gap-2 mb-4">
         <FilterBtn active={filter === 'all'} onClick={() => setFilter('all')}>All</FilterBtn>
         {CHARACTERS.map(c => (
           <FilterBtn key={c.id} active={filter === c.id} onClick={() => setFilter(c.id)}>
@@ -98,7 +116,18 @@ export default function ShopScreen({ session, progression, onProgressionRefresh,
           )
         })}
       </div>
+        </>
+      )}
     </Screen>
+  )
+}
+
+function TabBtn({ active, onClick, children }) {
+  return (
+    <button onClick={onClick}
+      className={`px-4 py-2 rounded-full border text-sm font-bold ${active ? 'bg-amber-500/20 border-amber-400 text-amber-100' : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-slate-500'}`}>
+      {children}
+    </button>
   )
 }
 
