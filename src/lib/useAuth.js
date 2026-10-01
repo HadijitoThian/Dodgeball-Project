@@ -67,7 +67,15 @@ export function useAuth() {
       .select('id, display_name, country, email, is_adult, avatar_url, created_at, is_dev')
       .eq('id', uid)
       .maybeSingle()
-    if (!error) setProfile(data)
+    if (!error) { setProfile(data); return }
+    // Fallback: is_dev column may not exist yet (migration not run) — retry
+    // without it so sign-in still works.
+    const fb = await supabase
+      .from('profiles')
+      .select('id, display_name, country, email, is_adult, avatar_url, created_at')
+      .eq('id', uid)
+      .maybeSingle()
+    if (!fb.error) setProfile(fb.data)
   }, [])
 
   useEffect(() => {
