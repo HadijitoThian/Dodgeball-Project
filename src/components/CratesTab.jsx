@@ -33,7 +33,7 @@ export default function CratesTab({ session, profile, progression, onProgression
           const canAfford = isDev || coins >= c.price
           return (
             <div key={c.id}
-              className="rounded-2xl border-2 p-5 flex flex-col items-center shadow-lg"
+              className="rounded-2xl border-2 p-5 flex flex-col items-center shadow-lg h-full"
               style={{ borderColor: c.color, background: `radial-gradient(circle at 50% 20%, ${c.color}22, transparent 70%)` }}>
               <div className="text-5xl mb-2">🎁</div>
               <div className="text-xl font-black text-white">{c.name}</div>
@@ -41,10 +41,10 @@ export default function CratesTab({ session, profile, progression, onProgression
 
               {/* Odds table */}
               <div className="mt-3 w-full text-[10px] uppercase tracking-widest">
-                {Object.entries(c.odds).filter(([, p]) => p > 0).map(([rarity, p]) => {
+                {Object.entries(c.odds).map(([rarity, p]) => {
                   const meta = RARITY_META[rarity]
                   return (
-                    <div key={rarity} className="flex justify-between">
+                    <div key={rarity} className={`flex justify-between ${p === 0 ? 'opacity-30' : ''}`}>
                       <span style={{ color: meta.color }}>{meta.name}</span>
                       <span className="font-mono text-slate-200">{(p * 100).toFixed(1)}%</span>
                     </div>
@@ -52,10 +52,11 @@ export default function CratesTab({ session, profile, progression, onProgression
                 })}
               </div>
 
+              <div className="flex-grow min-h-4" />
               <button
                 onClick={() => open(c)}
                 disabled={busy === c.id || !canAfford}
-                className={`mt-4 w-full px-3 py-2 rounded-lg font-bold text-white ${canAfford ? 'bg-amber-600 hover:bg-amber-500' : 'bg-slate-700 opacity-60 cursor-not-allowed'}`}
+                className={`w-full px-3 py-2 rounded-lg font-bold text-white ${canAfford ? 'bg-amber-600 hover:bg-amber-500' : 'bg-slate-700 opacity-60 cursor-not-allowed'}`}
               >
                 {busy === c.id ? 'Opening…' : `🪙 ${c.price.toLocaleString()} — Open`}
               </button>
