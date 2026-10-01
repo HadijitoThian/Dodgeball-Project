@@ -618,7 +618,7 @@ function saveLastSkin(charId, idx) {
   } catch {}
 }
 
-export function CharacterSelect({ label, exclude, onPick, onBack, progression, session, onProgressionRefresh }) {
+export function CharacterSelect({ label, exclude, onPick, onBack, progression, session, profile, onProgressionRefresh }) {
   const [skins, setSkins] = useState(loadLastSkins())
   const [buyBusy, setBuyBusy] = useState(null)
   const [buyErr, setBuyErr] = useState('')
@@ -633,7 +633,7 @@ export function CharacterSelect({ label, exclude, onPick, onBack, progression, s
   const doBuy = async (charId) => {
     if (!session?.user?.id) return
     setBuyBusy(charId); setBuyErr('')
-    const res = await buyCharacterWithCoins(session.user.id, charId, coins)
+    const res = await buyCharacterWithCoins(session.user.id, charId, coins, !!profile?.is_dev)
     setBuyBusy(null)
     if (!res.ok) { setBuyErr(res.error || 'Purchase failed'); return }
     sfx.match()

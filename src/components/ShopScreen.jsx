@@ -7,7 +7,7 @@ import { buySkin, isOwned, loadOwnedSkins } from '../lib/skins.js'
 import { sfx } from '../game/sfx.js'
 import CratesTab from './CratesTab.jsx'
 
-export default function ShopScreen({ session, progression, onProgressionRefresh, onBack }) {
+export default function ShopScreen({ session, profile, progression, onProgressionRefresh, onBack }) {
   const uid = session?.user?.id
   const [owned, setOwned] = useState([])
   const [busy, setBusy] = useState(null)
@@ -25,7 +25,7 @@ export default function ShopScreen({ session, progression, onProgressionRefresh,
   const doBuy = async (row) => {
     if (!uid) return
     setBusy(`${row.characterId}:${row.skinId}`); setErr('')
-    const res = await buySkin(uid, row.characterId, row.skinId, coins)
+    const res = await buySkin(uid, row.characterId, row.skinId, coins, !!profile?.is_dev)
     setBusy(null)
     if (!res.ok) { setErr(res.error || 'Purchase failed'); return }
     setOwned(res.owned || [])
@@ -58,7 +58,7 @@ export default function ShopScreen({ session, progression, onProgressionRefresh,
       </div>
 
       {tab === 'crates' && (
-        <CratesTab session={session} progression={progression} onProgressionRefresh={async () => {
+        <CratesTab session={session} profile={profile} progression={progression} onProgressionRefresh={async () => {
           onProgressionRefresh && await onProgressionRefresh()
           if (uid) setOwned(await loadOwnedSkins(uid))
         }} />

@@ -52,31 +52,32 @@ export function isOwned(ownedRows, characterId, skinId) {
 // Buy a shop skin. Deducts coins from progression, records ownership,
 // and re-applies skins so the new one shows up immediately.
 // Returns { ok, error, newCoins, newlyApplied }.
-export async function buySkin(userId, characterId, skinId, currentCoins) {
+export async function buySkin(userId, characterId, skinId, currentCoins, isDev = false) {
   if (!userId) return { ok: false, error: 'not signed in' }
   const skin = findShopSkin(characterId, skinId)
   if (!skin) return { ok: false, error: 'unknown skin' }
   const price = RARITY_PRICE[skin.rarity] || 400
-  if (currentCoins < price) return { ok: false, error: `Need ${price} coins` }
+  if (!isDev && currentCoins < price) return { ok: false, error: `Need ${price} coins` }
 
-  const newCoins = currentCoins - price
-  const { error: upErr } = await supabase.from('progression')
-    .update({ coins: newCoins, updated_at: new Date().toISOString() })
-    .eq('user_id', userId)
-  if (upErr) return { ok: false, error: upErr.message }
+  const newCoins = isDev ? currentCoins : currentCoins - price
+  if (!isDev) {
+    const { error: upErr } = await supabase.from('progression')
+      .update({ coins: newCoins, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+    if (upErr) return { ok: false, error: upErr.message }
+  }
 
   const { error: ownErr } = await supabase.from('owned_skins').insert({
-    user_id: userId, character_id: characterId, skin_id: skinId, price_paid: price,
+    user_id: userId, character_id: characterId, skin_id: skinId, price_paid: isDev ? 0 : price,
   })
   if (ownErr) return { ok: false, error: ownErr.message }
 
   await supabase.from('xp_events').insert({
-    user_id: userId, reason: 'buy_skin',
-    xp: 0, coins: -price,
+    user_id: userId, reason: isDev ? 'buy_skin_dev' : 'buy_skin',
+    xp: 0, coins: isDev ? 0 : -price,
     metadata: { character_id: characterId, skin_id: skinId, rarity: skin.rarity },
   })
 
-  // Re-fetch & re-apply owned skins so the new skin appears everywhere.
   const owned = await loadOwnedSkins(userId)
   return { ok: true, newCoins, owned }
 }

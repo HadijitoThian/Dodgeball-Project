@@ -142,28 +142,30 @@ async function _postRewards(userId, prevProgress, events, characterId) {
 }
 
 // Buy a character with coins. Returns { ok, error, newCoins }.
-export async function buyCharacterWithCoins(userId, characterId, currentCoins) {
+export async function buyCharacterWithCoins(userId, characterId, currentCoins, isDev = false) {
   if (!userId) return { ok: false, error: 'not signed in' }
   if (CHARACTER_LEVEL_UNLOCKS[characterId] === undefined && !isKnownCharacter(characterId)) {
     return { ok: false, error: 'unknown character' }
   }
-  if (currentCoins < CHARACTER_COIN_PRICE) return { ok: false, error: 'not enough coins' }
+  if (!isDev && currentCoins < CHARACTER_COIN_PRICE) return { ok: false, error: 'not enough coins' }
 
-  const newCoins = currentCoins - CHARACTER_COIN_PRICE
-  const { error: upErr } = await supabase.from('progression')
-    .update({ coins: newCoins, updated_at: new Date().toISOString() })
-    .eq('user_id', userId)
-  if (upErr) return { ok: false, error: upErr.message }
+  const newCoins = isDev ? currentCoins : currentCoins - CHARACTER_COIN_PRICE
+  if (!isDev) {
+    const { error: upErr } = await supabase.from('progression')
+      .update({ coins: newCoins, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+    if (upErr) return { ok: false, error: upErr.message }
+  }
 
   const { error: unlErr } = await supabase.from('character_unlocks').upsert(
-    { user_id: userId, character_id: characterId, method: 'coins' },
+    { user_id: userId, character_id: characterId, method: isDev ? 'dev' : 'coins' },
     { onConflict: 'user_id,character_id' }
   )
   if (unlErr) return { ok: false, error: unlErr.message }
 
   await supabase.from('xp_events').insert({
-    user_id: userId, reason: 'spend_coins',
-    xp: 0, coins: -CHARACTER_COIN_PRICE,
+    user_id: userId, reason: isDev ? 'spend_coins_dev' : 'spend_coins',
+    xp: 0, coins: isDev ? 0 : -CHARACTER_COIN_PRICE,
     metadata: { character_id: characterId },
   })
 

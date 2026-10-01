@@ -6,7 +6,7 @@ import CharacterPose from './CharacterPose.jsx'
 import { sfx } from '../game/sfx.js'
 
 // Grid of crate cards + reveal overlay.
-export default function CratesTab({ session, progression, onProgressionRefresh }) {
+export default function CratesTab({ session, profile, progression, onProgressionRefresh }) {
   const uid = session?.user?.id
   const [busy, setBusy] = useState(null)
   const [reveal, setReveal] = useState(null)
@@ -16,7 +16,7 @@ export default function CratesTab({ session, progression, onProgressionRefresh }
   const open = async (crate) => {
     if (!uid) return
     setBusy(crate.id); setErr('')
-    const res = await openCrate(uid, crate.id, coins)
+    const res = await openCrate(uid, crate.id, coins, !!profile?.is_dev)
     setBusy(null)
     if (!res.ok) { setErr(res.error || 'Open failed'); return }
     setReveal(res)

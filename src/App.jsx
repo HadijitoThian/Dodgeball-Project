@@ -325,6 +325,7 @@ export default function App() {
           onBack={() => setScreen('mode')}
           progression={auth.progression}
           session={auth.session}
+          profile={auth.profile}
           onProgressionRefresh={auth.refreshProgression}
           onPick={(id, skinIdx) => {
             const opponents = buildLadder(id)
@@ -378,6 +379,7 @@ export default function App() {
           onBack={() => setScreen('mode')}
           progression={auth.progression}
           session={auth.session}
+          profile={auth.profile}
           onProgressionRefresh={auth.refreshProgression}
           onPick={(id, skinIdx) => {
             setCfg(c => ({ ...c, p1Char: id, p1Skin: skinIdx || 0 }))
@@ -399,6 +401,7 @@ export default function App() {
           onBack={() => setScreen('p1')}
           progression={auth.progression}
           session={auth.session}
+          profile={auth.profile}
           onProgressionRefresh={auth.refreshProgression}
           onPick={(id, skinIdx) => { setCfg(c => ({ ...c, p2Char: id, p2Skin: skinIdx || 0 })); setScreen('map') }}
         />
@@ -486,6 +489,7 @@ export default function App() {
       {screen === 'shop' && (
         <ShopScreen
           session={auth.session}
+          profile={auth.profile}
           progression={auth.progression}
           onProgressionRefresh={auth.refreshProgression}
           onBack={backToTitle}

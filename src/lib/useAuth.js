@@ -64,7 +64,7 @@ export function useAuth() {
     if (!uid) { setProfile(null); return }
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, display_name, country, email, is_adult, avatar_url, created_at')
+      .select('id, display_name, country, email, is_adult, avatar_url, created_at, is_dev')
       .eq('id', uid)
       .maybeSingle()
     if (!error) setProfile(data)

@@ -57,11 +57,11 @@ function pickSkinOfRarity(rarity, ownedSet) {
 
 // Open a crate. Deducts coins, rolls a skin, awards it (or refunds coins
 // if it's a duplicate), records the event, and returns the full result.
-export async function openCrate(userId, crateId, currentCoins) {
+export async function openCrate(userId, crateId, currentCoins, isDev = false) {
   if (!userId) return { ok: false, error: 'not signed in' }
   const crate = findCrate(crateId)
   if (!crate) return { ok: false, error: 'unknown crate' }
-  if (currentCoins < crate.price) return { ok: false, error: `Need ${crate.price} coins` }
+  if (!isDev && currentCoins < crate.price) return { ok: false, error: `Need ${crate.price} coins` }
 
   // Load current owned so we can avoid dupes and downgrade cleanly.
   const ownedRows = await loadOwnedSkins(userId)
@@ -82,26 +82,27 @@ export async function openCrate(userId, crateId, currentCoins) {
 
   const { skin, duplicate } = result
   const refund = duplicate ? duplicateRefund(rolledRarity) : 0
-  const newCoins = currentCoins - crate.price + refund
+  const newCoins = isDev ? currentCoins : currentCoins - crate.price + refund
 
-  // Deduct price + refund at once.
-  const { error: upErr } = await supabase.from('progression')
-    .update({ coins: newCoins, updated_at: new Date().toISOString() })
-    .eq('user_id', userId)
-  if (upErr) return { ok: false, error: upErr.message }
+  if (!isDev) {
+    const { error: upErr } = await supabase.from('progression')
+      .update({ coins: newCoins, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+    if (upErr) return { ok: false, error: upErr.message }
+  }
 
   // Grant the skin only if it's new.
   if (!duplicate) {
     const { error: ownErr } = await supabase.from('owned_skins').insert({
       user_id: userId, character_id: skin.characterId, skin_id: skin.skinId,
-      price_paid: crate.price,
+      price_paid: isDev ? 0 : crate.price,
     })
     if (ownErr) return { ok: false, error: ownErr.message }
   }
 
   await supabase.from('xp_events').insert({
-    user_id: userId, reason: 'crate_open',
-    xp: 0, coins: refund - crate.price,
+    user_id: userId, reason: isDev ? 'crate_open_dev' : 'crate_open',
+    xp: 0, coins: isDev ? 0 : refund - crate.price,
     metadata: { crate: crateId, character_id: skin.characterId, skin_id: skin.skinId, rarity: rolledRarity, duplicate },
   })
 
