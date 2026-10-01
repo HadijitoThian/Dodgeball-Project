@@ -4,7 +4,7 @@
 alter table public.profiles
   add column if not exists is_dev boolean not null default false;
 
--- Grant dev privileges to the game owner (hjthian@gmail.com).
+-- Grant dev privileges to the game owner (thianraiden@gmail.com).
 update public.profiles
 set is_dev = true
-where lower(email) = 'hjthian@gmail.com';
+where lower(email) = 'thianraiden@gmail.com';
