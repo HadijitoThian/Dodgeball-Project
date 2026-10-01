@@ -78,9 +78,9 @@ export const RARITY_META = {
   mythical:  { name: 'Mythical',  color: '#f472b6' },
 }
 
-// Legendary and mythical skins are crate-only — hide them from the
-// direct-buy shop grid.
-export const CRATE_ONLY_RARITIES = new Set(['legendary', 'mythical'])
+// Legendary + Mythical are already crate-only; now Rare and Epic are
+// crate-only too so Direct Buy stays as a curated Common-tier shop.
+export const CRATE_ONLY_RARITIES = new Set(['rare', 'epic', 'legendary', 'mythical'])
 
 export function shopSkinsFor(characterId) {
   return SHOP_SKINS.filter(s => s.characterId === characterId)
