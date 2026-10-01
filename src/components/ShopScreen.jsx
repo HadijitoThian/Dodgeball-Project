@@ -21,6 +21,7 @@ export default function ShopScreen({ session, profile, progression, onProgressio
   }, [uid])
 
   const coins = progression?.progression?.coins || 0
+  const isDev = !!profile?.is_dev
 
   const doBuy = async (row) => {
     if (!uid) return
@@ -85,7 +86,7 @@ export default function ShopScreen({ session, profile, progression, onProgressio
           const bought = isOwned(owned, row.characterId, row.skinId)
           const price = RARITY_PRICE[row.rarity] || 400
           const rar = RARITY_META[row.rarity]
-          const canAfford = coins >= price
+          const canAfford = isDev || coins >= price
           const previewChar = { ...char, color: row.color, accent: row.accent }
           return (
             <div key={`${row.characterId}:${row.skinId}`}

@@ -717,10 +717,10 @@ export function CharacterSelect({ label, exclude, onPick, onBack, progression, s
                       <span>🪙 {CHARACTER_COIN_PRICE.toLocaleString()}</span>
                       <button
                         onClick={(e) => { e.stopPropagation(); doBuy(c.id) }}
-                        disabled={buyBusy === c.id || coins < CHARACTER_COIN_PRICE}
+                        disabled={buyBusy === c.id || (!profile?.is_dev && coins < CHARACTER_COIN_PRICE)}
                         className="px-3 py-1 rounded bg-amber-600 hover:bg-amber-500 disabled:opacity-40 disabled:cursor-not-allowed font-bold text-white text-xs"
                       >
-                        {buyBusy === c.id ? 'Buying…' : coins < CHARACTER_COIN_PRICE ? 'Not enough' : 'Buy'}
+                        {buyBusy === c.id ? 'Buying…' : (!profile?.is_dev && coins < CHARACTER_COIN_PRICE) ? 'Not enough' : 'Buy'}
                       </button>
                     </div>
                   )}

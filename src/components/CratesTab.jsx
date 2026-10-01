@@ -12,6 +12,7 @@ export default function CratesTab({ session, profile, progression, onProgression
   const [reveal, setReveal] = useState(null)
   const [err, setErr] = useState('')
   const coins = progression?.progression?.coins || 0
+  const isDev = !!profile?.is_dev
 
   const open = async (crate) => {
     if (!uid) return
@@ -29,7 +30,7 @@ export default function CratesTab({ session, profile, progression, onProgression
       {err && <div className="text-red-400 text-center mb-3">{err}</div>}
       <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
         {CRATES.map(c => {
-          const canAfford = coins >= c.price
+          const canAfford = isDev || coins >= c.price
           return (
             <div key={c.id}
               className="rounded-2xl border-2 p-5 flex flex-col items-center shadow-lg"
