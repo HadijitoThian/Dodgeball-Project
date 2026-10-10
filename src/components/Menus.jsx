@@ -373,7 +373,7 @@ export function CreditsScreen({ onBack }) {
     <Screen title="ABOUT & CREDITS" onBack={onBack}>
       <div className="max-w-3xl mx-auto space-y-3 overflow-y-auto pr-2" style={{ maxHeight: '65vh' }}>
         <Section title="About">
-          <p>A 2D platformer dodgeball game — solo or local 2P — with 6 fighters, 4 maps, four CPU tiers, a Survival Ladder, cosmetic skins, difficulty modifiers, and arena hazards. Built to be picked up in seconds and mastered over hundreds of matches.</p>
+          <p>A 2D platformer dodgeball game — solo or local 2P — with 9 fighters, 4 maps, four CPU tiers, a Survival Ladder, cosmetic skins, difficulty modifiers, and arena hazards. Built to be picked up in seconds and mastered over hundreds of matches.</p>
         </Section>
 
         <Section title="Design & Direction">
@@ -543,10 +543,10 @@ export function ModeSelect({ onPick, onBack }) {
   const modes = [
     { id: 'ranked', name: 'Ranked', desc: 'Compete for MMR + tier. First to 3 rounds wins.', highlight: true },
     { id: 'online', name: 'Play Online (Beta)', desc: 'Real-time multiplayer preview', highlight: true },
-    { id: 'onlineLadder', name: 'Online Ladder', desc: 'Server-timed 6-fight ladder + global leaderboard', highlight: true },
+    { id: 'onlineLadder', name: 'Online Ladder', desc: 'Server-timed 8-fight ladder + global leaderboard', highlight: true },
     { id: '1p', name: '1P vs CPU', desc: 'Play against the AI' },
     { id: '2p', name: '2P Local', desc: 'Two players, one keyboard' },
-    { id: 'ladder', name: 'Survival Ladder', desc: 'Beat all 6 fighters, rising difficulty' },
+    { id: 'ladder', name: 'Survival Ladder', desc: 'Beat all 8 opponents, rising difficulty' },
     { id: 'practice', name: 'Practice Arena', desc: 'Warm up, no score' },
   ]
   return (

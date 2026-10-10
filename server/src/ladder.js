@@ -1,8 +1,9 @@
 // Ladder run configuration and Supabase submission.
 import { CHARACTERS } from './gameConstants.js'
 
-// Rising difficulty: two easy, two medium, one hard, one impossible.
-export const LADDER_DIFFICULTIES = ['easy', 'easy', 'medium', 'medium', 'hard', 'impossible']
+// Rising difficulty: two easy, two medium, two hard, two impossible — one
+// fight per other character in the roster.
+export const LADDER_DIFFICULTIES = ['easy', 'easy', 'medium', 'medium', 'hard', 'hard', 'impossible', 'impossible']
 
 export function buildLadderOpponents(playerCharacter) {
   const pool = CHARACTERS.filter(c => c.id !== playerCharacter).map(c => c.id)

@@ -175,7 +175,7 @@ export default function OnlineLadder({ profile, session, onExit, onLadderOver, p
   if (screen === 'menu') return (
     <MenuLayout title="ONLINE LADDER" name={name} error={error} onExit={onExit}>
       <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4 text-slate-200 text-sm">
-        <p>Face all 6 fighters back-to-back on a rising difficulty ladder. Your time is measured on the server, and clears go to the global leaderboard.</p>
+        <p>Face all 8 other fighters back-to-back on a rising difficulty ladder. Your time is measured on the server, and clears go to the global leaderboard.</p>
         <ul className="list-disc pl-5 mt-3 space-y-1">
           <li>First to 3 rounds wins each fight (out of ~5 rounds)</li>
           <li>One life to fail — losing any fight ends the run</li>

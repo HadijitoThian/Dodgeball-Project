@@ -27,7 +27,9 @@ import { useAuth } from './lib/useAuth.js'
 
 const pick = arr => arr[Math.floor(Math.random() * arr.length)]
 
-const LADDER_DIFF = ['easy', 'easy', 'medium', 'medium', 'hard', 'impossible']
+// 8 fights — every other character in the roster, since the player can't
+// face themselves. Ramps from easy → impossible across the run.
+const LADDER_DIFF = ['easy', 'easy', 'medium', 'medium', 'hard', 'hard', 'impossible', 'impossible']
 
 function buildLadder(p1) {
   const pool = CHARACTERS.filter(c => c.id !== p1).sort(() => Math.random() - 0.5)
