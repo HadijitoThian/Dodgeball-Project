@@ -72,7 +72,7 @@ export function initState({ mode, matchType, map, p1Char, p2Char, difficulty, mo
     setsP1: 0, setsP2: 0,
     roundsP1: 0, roundsP2: 0,
     roundsPerSet: matchType === '2v2' ? 7 : 5,
-    setsToWin: 3,
+    setsToWin: 1,
     phase: 'countdown',
     phaseTimer: 2200,
     countdown: 3,
